@@ -2,8 +2,7 @@ import time
 import BaseHTTPServer
 import urlparse
 import json
-import sqlite3
-
+import redis
 
 HOST_NAME = 'localhost' # !!!REMEMBER TO CHANGE THIS!!!
 PORT_NUMBER = 80 # Maybe set this to 9000.
@@ -22,20 +21,16 @@ class ZipAPIServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             the_zip = [path.strip('/')]
 
         if the_zip:
-            # Query database with the ZIP and pull the city, state, country
-            conn = sqlite3.connect('zipcodes.db')
-            c = conn.cursor()
-
-            c.execute('select Country, State, City from zipcodes where ZipCode=?', the_zip)
-
-            row = c.fetchone()
+            r = redis.Redis(host='localhost', port=6379, db=0)
+            
+            row = r.hvals("zip:{zip}".format(zip=str(the_zip[0])))
             if row is not None:
                 s.send_response(200)
                 # The Magic!
                 s.send_header("Access-Control-Allow-Origin", "*")
                 s.send_header("Content-type", "application/json")
                 s.end_headers()
-        
+                    
                 data = dict(zip(('country', 'state', 'city'), row))
                 s.wfile.write(json.dumps(data))
             else:

@@ -1,3 +1,4 @@
+import redis
 import csv
 import sqlite3
 
@@ -32,6 +33,13 @@ for row in zipAdapter:
 	
 	#print row[3].strip('"')
 	#print row[4].strip('"')
-    
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+results = c.execute('select DISTINCT(zipcode), city, state, country from zipcodes')
+
+for result in results:
+    data = dict(zip(('country', 'state', 'city'), (result[3], result[2], result[1])))
+    key = "zip:" + str(result[0])
+    r.hmset(key, data)    
 
 c.close()
